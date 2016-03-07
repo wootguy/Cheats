@@ -12,12 +12,11 @@ void PluginInit()
 
 void print(string text) { g_Game.AlertMessage( at_console, text); }
 void println(string text) { print(text + "\n"); }
-void log(string text) { g_Game.AlertMessage( at_error, text); }
-void logn(string text) { print(text + "\n"); }
 
 HookReturnCode MapChange()
 {
 	player_states.deleteAll();
+	cheats_for_all = false;	
 	return HOOK_CONTINUE;
 }
 
@@ -303,16 +302,6 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 			playerArg++;
 		}
 	} 
-
-	if (toggleState == TOGGLE_TOGGLE and cheat.type == CHEAT_TOGGLE and args[0] != '.cheats')
-	{
-		if (cheat.lastState == TOGGLE_OFF)
-			toggleState = TOGGLE_ON;
-		else
-			toggleState = TOGGLE_OFF;
-		cheat.lastState = toggleState;
-		cheatArgs.insertLast(toggleState);
-	}
 	
 	// player is targetting someone else?
 	CBasePlayer@ target = cheater;
@@ -335,6 +324,16 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 			g_PlayerFuncs.SayTextAll(cheater, "Sorry, only admins can set cheats on other players\n");
 			return;
 		}
+	}
+	
+	if (allPlayers and toggleState == TOGGLE_TOGGLE and cheat.type == CHEAT_TOGGLE and args[0] != '.cheats')
+	{
+		if (cheat.lastState == TOGGLE_OFF)
+			toggleState = TOGGLE_ON;
+		else
+			toggleState = TOGGLE_OFF;
+		cheat.lastState = toggleState;
+		cheatArgs.insertLast(toggleState);
 	}
 	
 	for (int i = 1; i < cheat.numArgs+1; i++) {
