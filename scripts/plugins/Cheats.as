@@ -1,4 +1,16 @@
 
+// Requests:
+// giveammo [amt] [type] - if type is ommitted, it gives ammo for current weapon
+// rate of fire modifier? clip/max ammo modifier? reload speed? damage modifier?
+// player speed
+// infinite jump
+// infammo
+// setammo
+
+// TEST:
+// maxhealth amt
+// maxcharge amt
+
 void PluginInit()
 {
 	g_Module.ScriptInfo.SetAuthor( "w00tguy" );
@@ -76,6 +88,8 @@ dictionary cheats = {
 	{'.impulse',    Cheat("impulse %0", useImpulse,     CHEAT_GIVE,     1, false)},
 	{'.give',  	    Cheat("%0",   	    giveItem,       CHEAT_GIVE, 	1, false)},
 	{'.givepoints', Cheat("%0 points",  givePoints,     CHEAT_GIVE, 	1, false)},
+	{'.maxhealth',  Cheat("maxhealth",  setMaxHealth,   CHEAT_GIVE,     1, false)},
+	{'.maxarmor',   Cheat("maxarmor",   setMaxCharge,   CHEAT_GIVE,     1, false)},
 	{'.giveall',    Cheat("everything", giveAll,        CHEAT_GIVE, 	0, false)},
 	{'.heal',       Cheat("healed",	    heal,     	    CHEAT_ACTION,   0, false)},
 	{'.charge',     Cheat("recharged",  charge,     	CHEAT_ACTION,   0, false)},
@@ -83,6 +97,7 @@ dictionary cheats = {
 	{'.strip',      Cheat("stripped",   strip,     	    CHEAT_ACTION,   0, false)}
 };
 
+CClientCommand _cheatlist(  "cheatlist",  "Show all possible cheats", @cheatCmd );
 CClientCommand _noclip(     "noclip",     "Fly through walls", @cheatCmd );
 CClientCommand _godmode(    "godmode",    "Take no damage", @cheatCmd );
 CClientCommand _god(        "god",        "Take no damage", @cheatCmd );
@@ -101,7 +116,9 @@ CClientCommand _chargeme(   "chargeme",   "Fully charge HEV suit", @cheatCmd );
 CClientCommand _recharge(   "recharge",   "Fully charge HEV suit", @cheatCmd );
 CClientCommand _revive(     "revive",     "Bring back to life", @cheatCmd );
 CClientCommand _strip(      "strip",      "Remove all weapons and ammo", @cheatCmd );
-CClientCommand _cheatlist(  "cheatlist",  "Show all possible cheats", @cheatCmd );
+CClientCommand _maxhealth(  "maxhealth",  "Adjust maximum health", @cheatCmd );
+CClientCommand _maxarmor(   "maxarmor",   "Adjust maximum armor", @cheatCmd );
+CClientCommand _maxcharge(   "maxcharge",  "Adjust maximum armor", @cheatCmd );
 
 void initCheatAliases() {
 	cheats[".god"] = cheats[".godmode"];
@@ -110,6 +127,7 @@ void initCheatAliases() {
 	cheats[".chargeme"] = cheats[".charge"];
 	cheats[".recharge"] = cheats[".charge"];
 	cheats[".reviveme"] = cheats[".revive"];
+	cheats[".maxcharge"] = cheats[".maxarmor"];
 }
 
 array<string> impulse_101_weapons = {
@@ -286,7 +304,7 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 	if (args.ArgC()-1 < cheat.numArgs) {
 		g_PlayerFuncs.SayText(cheater, "Not enough arguments supplied for cheat");
 		return;
-	}	
+	}
 	
 	// player is allowed to use this cheat?
 	if (!canCheat(cheater, cheat.adminOnly)) {
@@ -634,6 +652,18 @@ int givePoints(CBasePlayer@ target, array<string>@ args)
 	return 0;
 }
 
+int setMaxHealth(CBasePlayer@ target, array<string>@ args)
+{
+	target.pev.max_health = atoi(args[0]);
+	return 0;
+}
+
+int setMaxCharge(CBasePlayer@ target, array<string>@ args)
+{
+	target.pev.armortype = atoi(args[0]);
+	return 0;
+}
+
 int heal(CBasePlayer@ target, array<string>@ args)
 {
 	if (target.pev.deadflag != 0) {
@@ -697,8 +727,6 @@ int giveAll(CBasePlayer@ target, array<string>@ args)
 		target.SelectItem(activeItem);
 	return 0;
 }
-
-
 
 bool doCheat(CBasePlayer@ plr, const CCommand@ args)
 {
