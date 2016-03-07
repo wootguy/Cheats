@@ -13,6 +13,9 @@ void PluginInit()
 void print(string text) { g_Game.AlertMessage( at_console, text); }
 void println(string text) { print(text + "\n"); }
 
+void printPlr(CBasePlayer@ plr, string text) { g_PlayerFuncs.ClientPrint( plr, HUD_PRINTCONSOLE, text); }
+void printlnPlr(CBasePlayer@ plr, string text) { printPlr(plr, text + "\n"); }
+
 HookReturnCode MapChange()
 {
 	player_states.deleteAll();
@@ -380,7 +383,7 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 				cheats_for_all = !cheats_for_all;
 			
 			if (cheats_for_all)
-				g_PlayerFuncs.SayTextAll(cheater, "" + cheater.pev.netname + " enabled cheats for everyone (say .cheatlist for available cheats)\n");
+				g_PlayerFuncs.SayTextAll(cheater, "" + cheater.pev.netname + " enabled cheats for everyone (type .cheatlist in console for help)\n");
 			else
 				g_PlayerFuncs.SayTextAll(cheater, "" + cheater.pev.netname + " disabled cheats for everyone\n");
 		}
@@ -420,7 +423,7 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 					g_PlayerFuncs.SayText(cheater, cheat.name + " enabled on " + target.pev.netname + "\n");
 					
 					if (args[0] == '.cheats')
-						g_PlayerFuncs.SayText(target, "" + cheater.pev.netname + " gave you " + cheat.name + " (say .cheatlist for available cheats)\n");
+						g_PlayerFuncs.SayText(target, "" + cheater.pev.netname + " gave you " + cheat.name + " (type .cheatlist in console for help)\n");
 					else
 						g_PlayerFuncs.SayText(target, "" + cheater.pev.netname + " gave you " + cheat.name + "\n");
 				}
@@ -666,7 +669,7 @@ int revive(CBasePlayer@ target, array<string>@ args)
 
 int strip(CBasePlayer@ target, array<string>@ args)
 {
-	target.RemoveAllItems(0);
+	target.RemoveAllItems(false);
 	target.SetItemPickupTimes(0);
 	return 0;
 }
@@ -695,6 +698,8 @@ int giveAll(CBasePlayer@ target, array<string>@ args)
 	return 0;
 }
 
+
+
 bool doCheat(CBasePlayer@ plr, const CCommand@ args)
 {
 	if (cheats.exists(args[0])) 
@@ -705,7 +710,38 @@ bool doCheat(CBasePlayer@ plr, const CCommand@ args)
 	} 
 	else if (args[0] == '.cheatlist')
 	{
-		g_PlayerFuncs.SayText(plr, 'Available cheats: .noclip .god .notarget .notouch .give .givepoints .giveall .heal .charge .revive .strip .impulse 101 .impulse 50\n');
+		printlnPlr(plr, "--------------------- Available cheat commands --------------------");
+		if (isAdmin(plr)) {
+			printlnPlr(plr, ".cheats [0,1] [player] - Enable/disable cheats for everyone or a specfic player");
+		}
+		printlnPlr(plr, ".noclip - Fly through walls"); 
+		printlnPlr(plr, ".god - Become invincible"); 
+		printlnPlr(plr, ".notarget - Monsters ignore you"); 
+		printlnPlr(plr, ".notouch - Entities pass through you and map triggers ignore you"); 
+		printlnPlr(plr, ".impulse 101 - Gives all weapons, some ammo, and a battery"); 
+		printlnPlr(plr, ".give - Gives a weapon, ammo, or item entity"); 
+		printlnPlr(plr, ".givepoints - Add points to score"); 
+		printlnPlr(plr, ".giveall - Give all weapons and INFINITE AMMO (even better than impulse 101)"); 
+		printlnPlr(plr, ".heal - Fully restores health"); 
+		printlnPlr(plr, ".charge - Fully charges HEV suit"); 
+		printlnPlr(plr, ".revive - Come back to life"); 
+		printlnPlr(plr, ".strip - Remove all weapons and ammo");
+		printlnPlr(plr, "\n---------------------------- Command Syntax ---------------------"); 
+		printlnPlr(plr, "Format for cheats:"); 
+		
+		if (isAdmin(plr)) {
+			printlnPlr(plr, "\n.god [0,1] [player]\n");
+			printlnPlr(plr, "The 0/1 argument is optional, and only applies to some cheats (god, noclip, notarget, notouch)");
+			printlnPlr(plr, "\nWhen specifying a player (optional), you can use part of their username, or their Steam ID.");
+			printlnPlr(plr, 'To apply a cheat to all players in a server, use \\all (ex: ".god 1 \\all")');
+		} else {
+			printlnPlr(plr, "\n.god [0,1]\n");
+			printlnPlr(plr, "The 0/1 argument is optional, and only applies to some cheats (god, noclip, notarget, notouch)");
+			printlnPlr(plr, 'Example: to turn on godmode, type ".god 1"');
+		}
+		printlnPlr(plr, '\nAll commands can be used in chat as well as the console.');
+		printlnPlr(plr, "\n------------------------------------------------------------------"); 
+		
 		return true;
 	}
 	return false;
