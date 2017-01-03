@@ -844,6 +844,8 @@ bool doCheat(CBasePlayer@ plr, const CCommand@ args)
 		printlnPlr(plr, ".charge - Fully charges HEV suit"); 
 		printlnPlr(plr, ".revive - Come back to life"); 
 		printlnPlr(plr, ".strip - Remove all weapons and ammo");
+		printlnPlr(plr, ".cloak - Same as notarget but also makes your player model invisible");
+		printlnPlr(plr, ".speed - Change movement speed (range is 0 to sv_maxspeed)");
 		printlnPlr(plr, "\n---------------------------- Command Syntax ---------------------"); 
 		printlnPlr(plr, "Format for cheats:"); 
 		
