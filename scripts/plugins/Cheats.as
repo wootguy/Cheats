@@ -808,13 +808,14 @@ void noclipFix()
 		if (noclip_users[i])
 		{
 			CBaseEntity@ ent = noclip_users[i];
-			ent.pev.movetype = MOVETYPE_NOCLIP;
+			if (ent.IsAlive())
+			{
+				ent.pev.movetype = MOVETYPE_NOCLIP;
+				continue;
+			}
 		}
-		else
-		{
-			noclip_users.removeAt(i);
-			i--;
-		}
+		noclip_users.removeAt(i);
+		i--;
 	}
 }
 
