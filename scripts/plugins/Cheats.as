@@ -6,10 +6,6 @@
 // infammo
 // setammo
 
-// TEST:
-// maxhealth amt
-// maxcharge amt
-
 void PluginInit()
 {
 	g_Module.ScriptInfo.SetAuthor( "w00tguy" );
@@ -20,7 +16,7 @@ void PluginInit()
 	
 	initCheatAliases();
 	
-	g_Scheduler.SetInterval("noclipFix", 0);
+	g_Scheduler.SetInterval("constantCheats", 0);
 }
 
 void print(string text) { g_Game.AlertMessage( at_console, text); }
@@ -32,6 +28,7 @@ void printlnPlr(CBasePlayer@ plr, string text) { printPlr(plr, text + "\n"); }
 HookReturnCode MapChange()
 {
 	player_states.deleteAll();
+	constant_cheats.deleteAll();
 	//cheats_for_all = false;	
 	return HOOK_CONTINUE;
 }
@@ -90,23 +87,24 @@ class Cheat
 // 'true' in the 1st column = only admins can use the cheat when '.cheats 1' is active
 // 'true' in the 2nd column = only the server owner can use the cheat
 dictionary cheats = {
-	{'.noclip',     Cheat("noclip",     toggleNoclip,   CHEAT_TOGGLE,   0, false, false)},
-	{'.godmode',    Cheat("godmode",    toggleGodmode,  CHEAT_TOGGLE,   0, false, false)},
-	{'.notarget',   Cheat("notarget",   toggleNotarget, CHEAT_TOGGLE,   0, false, false)},
-	{'.cloak',   	Cheat("cloak",   	toggleCloak, 	CHEAT_TOGGLE,   0, false, false)},
-	{'.notouch',    Cheat("notouch",    toggleNotouch,  CHEAT_TOGGLE,   0, false, false)},
-	{'.cheats',     Cheat("cheats",     toggleCheats,  	CHEAT_TOGGLE,   0, true,  false)},
-	{'.impulse',    Cheat("impulse %0", useImpulse,     CHEAT_GIVE,     1, false, false)},
-	{'.give',  	    Cheat("%0",   	    giveItem,       CHEAT_GIVE, 	1, false, false)},
-	{'.givepoints', Cheat("%0 points",  givePoints,     CHEAT_GIVE, 	1, false, false)},
-	{'.maxhealth',  Cheat("maxhealth",  setMaxHealth,   CHEAT_GIVE,     1, false, false)},
-	{'.maxarmor',   Cheat("maxarmor",   setMaxCharge,   CHEAT_GIVE,     1, false, false)},
-	{'.speed',   	Cheat("speed",   	setMaxSpeed,    CHEAT_GIVE,     1, false, false)},
-	{'.giveall',    Cheat("everything", giveAll,        CHEAT_GIVE, 	0, false, false)},
-	{'.heal',       Cheat("healed",	    heal,     	    CHEAT_ACTION,   0, false, false)},
-	{'.charge',     Cheat("recharged",  charge,     	CHEAT_ACTION,   0, false, false)},
-	{'.revive',     Cheat("revived",    revive,     	CHEAT_ACTION,   0, false, false)},
-	{'.strip',      Cheat("stripped",   strip,     	    CHEAT_ACTION,   0, false, false)}
+	{'.noclip',     Cheat("noclip",      toggleNoclip,   CHEAT_TOGGLE,   0, false, false)},
+	{'.godmode',    Cheat("godmode",     toggleGodmode,  CHEAT_TOGGLE,   0, false, false)},
+	{'.notarget',   Cheat("notarget",    toggleNotarget, CHEAT_TOGGLE,   0, false, false)},
+	{'.cloak',   	Cheat("cloak",   	 toggleCloak, 	 CHEAT_TOGGLE,   0, false, false)},
+	{'.notouch',    Cheat("notouch",     toggleNotouch,  CHEAT_TOGGLE,   0, false, false)},
+	{'.cheats',     Cheat("cheats",      toggleCheats,   CHEAT_TOGGLE,   0, true,  false)},
+	{'.impulse',    Cheat("impulse %0",  useImpulse,     CHEAT_GIVE,     1, false, false)},
+	{'.give',  	    Cheat("%0",   	     giveItem,       CHEAT_GIVE, 	 1, false, false)},
+	{'.givepoints', Cheat("%0 points",   givePoints,     CHEAT_GIVE, 	 1, false, false)},
+	{'.maxhealth',  Cheat("maxhealth",   setMaxHealth,   CHEAT_GIVE,     1, false, false)},
+	{'.maxarmor',   Cheat("maxarmor",    setMaxCharge,   CHEAT_GIVE,     1, false, false)},
+	{'.speed',   	Cheat("%0 speed",    setMaxSpeed,    CHEAT_GIVE,     1, false, false)},
+	{'.gravity',   	Cheat("%0% gravity", setGravity,     CHEAT_GIVE,     1, false, false)},
+	{'.giveall',    Cheat("everything",  giveAll,        CHEAT_GIVE, 	 0, false, false)},
+	{'.heal',       Cheat("healed",	     heal,     	     CHEAT_ACTION,   0, false, false)},
+	{'.charge',     Cheat("recharged",   charge,     	 CHEAT_ACTION,   0, false, false)},
+	{'.revive',     Cheat("revived",     revive,     	 CHEAT_ACTION,   0, false, false)},
+	{'.strip',      Cheat("stripped",    strip,     	 CHEAT_ACTION,   0, false, false)}
 };
 
 // ------------------
@@ -137,6 +135,7 @@ CClientCommand _maxhealth(  "maxhealth",  "Adjust maximum health", @cheatCmd );
 CClientCommand _maxarmor(   "maxarmor",   "Adjust maximum armor", @cheatCmd );
 CClientCommand _maxcharge(  "maxcharge",  "Adjust maximum armor", @cheatCmd );
 CClientCommand _speed(   	"speed",  	  "Adjust maximum movement speed", @cheatCmd );
+CClientCommand _gravity(   	"gravity",    "Set gravity percentage", @cheatCmd );
 
 void initCheatAliases() {
 	cheats[".god"] = cheats[".godmode"];
@@ -146,6 +145,7 @@ void initCheatAliases() {
 	cheats[".recharge"] = cheats[".charge"];
 	cheats[".reviveme"] = cheats[".revive"];
 	cheats[".maxcharge"] = cheats[".maxarmor"];
+	cheats[".grav"] = cheats[".gravity"];
 }
 
 array<string> impulse_101_weapons = {
@@ -234,8 +234,35 @@ int AMMO_CROSSBOW = 12;
 
 bool cheats_for_all = false;
 
+// for cheats that are applied every frame
+class ConstantCheat
+{
+	EHandle player;
+	int gravity;
+	bool noclip;
+	
+	ConstantCheat() {}
+	
+	ConstantCheat(EHandle player)
+	{
+		this.player = player;
+		gravity = 100;
+		noclip = false;
+	}
+	
+	bool isValid()
+	{
+		if (player)
+		{
+			CBaseEntity@ ent = player;
+			return ent.IsAlive() and (gravity != 100 or noclip);
+		}
+		return false;
+	}
+}
+
 dictionary player_states; // values are 0 or 1 (cheats enabled for non-admin)
-array<EHandle> noclip_users; // list of players currently in noclip mode
+array<ConstantCheat> constant_cheats;
 
 bool isAdmin(CBasePlayer@ plr)
 {
@@ -511,33 +538,44 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 int toggleNoclip(CBasePlayer@ target, array<string>@ args)
 {	
 	int toggleState = (args.length() > 0) ? atoi(args[0]) : TOGGLE_TOGGLE;
+	int ret;
+	
 	if (target.pev.movetype == MOVETYPE_NOCLIP and toggleState != TOGGLE_ON or toggleState == TOGGLE_OFF)
 	{
 		target.pev.movetype = MOVETYPE_WALK;
-		
-		for (uint i = 0; i < noclip_users.length(); i++)
-		{
-			if (noclip_users[i])
-			{
-				CBaseEntity@ ent = noclip_users[i];
-				if (ent.entindex() == target.entindex())
-				{
-					noclip_users.removeAt(i);
-					break;
-				}
-			}
-		}
 		g_PlayerFuncs.PrintKeyBindingString(target, "No clip OFF");
-		return TOGGLE_OFF;
+		ret = TOGGLE_OFF;
 	}
 	else
 	{
 		target.pev.movetype = MOVETYPE_NOCLIP;
-		EHandle h_plr = target;
-		noclip_users.insertLast(h_plr);
 		g_PlayerFuncs.PrintKeyBindingString(target, "No clip ON");
-		return TOGGLE_ON;
+		ret = TOGGLE_ON;
 	}
+	
+	bool existingCheat = false;
+	for (uint i = 0; i < constant_cheats.length(); i++)
+	{
+		if (constant_cheats[i].isValid())
+		{
+			CBaseEntity@ ent = constant_cheats[i].player;
+			if (ent.entindex() == target.entindex())
+			{
+				constant_cheats[i].noclip = ret == TOGGLE_ON;
+				existingCheat = true;
+				break;
+			}
+		}
+	}
+	if (!existingCheat and ret == TOGGLE_ON)
+	{
+		EHandle h_plr = target;
+		ConstantCheat cheat(h_plr);
+		cheat.noclip = true;
+		constant_cheats.insertLast(cheat);
+	}
+	
+	return ret;
 }
 
 int toggleGodmode(CBasePlayer@ target, array<string>@ args)
@@ -735,6 +773,36 @@ int setMaxSpeed(CBasePlayer@ target, array<string>@ args)
 	return 0;
 }
 
+int setGravity(CBasePlayer@ target, array<string>@ args)
+{
+	int arg = atoi(args[0]);
+	float gravity = arg/100.0f;		
+	target.pev.gravity = gravity;
+	
+	bool existingCheat = false;
+	for (uint i = 0; i < constant_cheats.length(); i++)
+	{
+		if (constant_cheats[i].isValid())
+		{
+			CBaseEntity@ ent = constant_cheats[i].player;
+			if (ent.entindex() == target.entindex())
+			{
+				constant_cheats[i].gravity = arg;
+				existingCheat = true;
+				break;
+			}
+		}
+	}
+	if (!existingCheat)
+	{
+		EHandle h_plr = target;
+		ConstantCheat cheat(h_plr);
+		cheat.gravity = arg;
+		constant_cheats.insertLast(cheat);
+	}
+	return 0;
+}
+
 int heal(CBasePlayer@ target, array<string>@ args)
 {
 	if (target.pev.deadflag != 0) {
@@ -801,20 +869,20 @@ int giveAll(CBasePlayer@ target, array<string>@ args)
 
 // entering a trigger_gravity or friction disables noclip for some reason
 // so I guess we just have to keep setting the noclip flag every single frame
-void noclipFix()
+void constantCheats()
 {
-	for (uint i = 0; i < noclip_users.length(); i++)
+	for (uint i = 0; i < constant_cheats.length(); i++)
 	{
-		if (noclip_users[i])
+		if (constant_cheats[i].isValid())
 		{
-			CBaseEntity@ ent = noclip_users[i];
-			if (ent.IsAlive())
-			{
+			CBaseEntity@ ent = constant_cheats[i].player;
+			if (constant_cheats[i].noclip)
 				ent.pev.movetype = MOVETYPE_NOCLIP;
-				continue;
-			}
+			if (constant_cheats[i].gravity != 100)
+				ent.pev.gravity = constant_cheats[i].gravity / 100.0f;
+			continue;
 		}
-		noclip_users.removeAt(i);
+		constant_cheats.removeAt(i);
 		i--;
 	}
 }
@@ -847,6 +915,7 @@ bool doCheat(CBasePlayer@ plr, const CCommand@ args)
 		printlnPlr(plr, ".strip - Remove all weapons and ammo");
 		printlnPlr(plr, ".cloak - Same as notarget but also makes your player model invisible");
 		printlnPlr(plr, ".speed - Change movement speed (range is 0 to sv_maxspeed)");
+		printlnPlr(plr, ".gravity - Change gravity percentage (100 = 100%)");
 		printlnPlr(plr, "\n---------------------------- Command Syntax ---------------------"); 
 		printlnPlr(plr, "Format for cheats:"); 
 		
