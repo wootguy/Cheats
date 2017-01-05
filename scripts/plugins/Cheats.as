@@ -28,7 +28,7 @@ void printlnPlr(CBasePlayer@ plr, string text) { printPlr(plr, text + "\n"); }
 HookReturnCode MapChange()
 {
 	player_states.deleteAll();
-	constant_cheats.deleteAll();
+	constant_cheats.resize(0);
 	//cheats_for_all = false;	
 	return HOOK_CONTINUE;
 }
@@ -136,6 +136,7 @@ CClientCommand _maxarmor(   "maxarmor",   "Adjust maximum armor", @cheatCmd );
 CClientCommand _maxcharge(  "maxcharge",  "Adjust maximum armor", @cheatCmd );
 CClientCommand _speed(   	"speed",  	  "Adjust maximum movement speed", @cheatCmd );
 CClientCommand _gravity(   	"gravity",    "Set gravity percentage", @cheatCmd );
+CClientCommand _grav(   	"grav",       "Set gravity percentage", @cheatCmd );
 
 void initCheatAliases() {
 	cheats[".god"] = cheats[".godmode"];
@@ -754,12 +755,14 @@ int givePoints(CBasePlayer@ target, array<string>@ args)
 int setMaxHealth(CBasePlayer@ target, array<string>@ args)
 {
 	target.pev.max_health = atoi(args[0]);
+	g_PlayerFuncs.PrintKeyBindingString(target, "Max health " + target.pev.max_health);
 	return 0;
 }
 
 int setMaxCharge(CBasePlayer@ target, array<string>@ args)
 {
 	target.pev.armortype = atoi(args[0]);
+	g_PlayerFuncs.PrintKeyBindingString(target, "Max armor " + target.pev.armortype);
 	return 0;
 }
 
@@ -776,8 +779,7 @@ int setMaxSpeed(CBasePlayer@ target, array<string>@ args)
 int setGravity(CBasePlayer@ target, array<string>@ args)
 {
 	int arg = atoi(args[0]);
-	float gravity = arg/100.0f;		
-	target.pev.gravity = gravity;
+	float gravity = arg/100.0f;
 	
 	bool existingCheat = false;
 	for (uint i = 0; i < constant_cheats.length(); i++)
@@ -800,6 +802,7 @@ int setGravity(CBasePlayer@ target, array<string>@ args)
 		cheat.gravity = arg;
 		constant_cheats.insertLast(cheat);
 	}
+	g_PlayerFuncs.PrintKeyBindingString(target, "Gravity " + arg + "%");
 	return 0;
 }
 
@@ -879,7 +882,11 @@ void constantCheats()
 			if (constant_cheats[i].noclip)
 				ent.pev.movetype = MOVETYPE_NOCLIP;
 			if (constant_cheats[i].gravity != 100)
+			{
 				ent.pev.gravity = constant_cheats[i].gravity / 100.0f;
+				if (ent.pev.gravity == 0)
+					ent.pev.gravity = -0.00000000000000000000000000001;
+			}
 			continue;
 		}
 		constant_cheats.removeAt(i);
@@ -911,6 +918,8 @@ bool doCheat(CBasePlayer@ plr, const CCommand@ args)
 		printlnPlr(plr, ".giveall - Give all weapons and INFINITE AMMO (even better than impulse 101)"); 
 		printlnPlr(plr, ".heal - Fully restores health"); 
 		printlnPlr(plr, ".charge - Fully charges HEV suit"); 
+		printlnPlr(plr, ".maxhealth - Change max health value"); 
+		printlnPlr(plr, ".maxcharge - Change max armor value"); 
 		printlnPlr(plr, ".revive - Come back to life"); 
 		printlnPlr(plr, ".strip - Remove all weapons and ammo");
 		printlnPlr(plr, ".cloak - Same as notarget but also makes your player model invisible");
