@@ -785,7 +785,7 @@ int setGravity(CBasePlayer@ target, array<string>@ args)
 {
 	int arg = atoi(args[0]);
 	float gravity = arg/100.0f;
-	target.gravity = gravity;
+	target.pev.gravity = gravity;
 	
 	bool existingCheat = false;
 	for (uint i = 0; i < constant_cheats.length(); i++)
