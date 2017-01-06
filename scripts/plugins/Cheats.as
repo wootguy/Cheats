@@ -769,10 +769,15 @@ int setMaxCharge(CBasePlayer@ target, array<string>@ args)
 int setMaxSpeed(CBasePlayer@ target, array<string>@ args)
 {
 	float speed = atof(args[0]);
-	if (speed == 0)
-		speed = 0.000000001; // 0 just resets to default
+	float max = g_EngineFuncs.CVarGetFloat("sv_maxspeed");
+	if (speed <= 0)
+		speed = 0.0001; // 0 just resets to default
+	if (speed > max)
+		speed = max;
 		
 	target.pev.maxspeed = speed;
+	
+	g_PlayerFuncs.PrintKeyBindingString(target, "Speed " + int(speed));
 	return 0;
 }
 
@@ -780,6 +785,7 @@ int setGravity(CBasePlayer@ target, array<string>@ args)
 {
 	int arg = atoi(args[0]);
 	float gravity = arg/100.0f;
+	target.gravity = gravity;
 	
 	bool existingCheat = false;
 	for (uint i = 0; i < constant_cheats.length(); i++)
