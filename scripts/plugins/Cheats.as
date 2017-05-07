@@ -856,8 +856,8 @@ int giveAll(CBasePlayer@ target, array<string>@ args)
 {
 	// remember current weapon
 	string activeItem;
-	if (target.m_pActiveItem !is null)
-		activeItem = target.m_pActiveItem.pev.classname;
+	if (target.m_hActiveItem.GetEntity() !is null)
+		activeItem = target.m_hActiveItem.GetEntity().pev.classname;
 
 	target.SetItemPickupTimes(0); // maybe not needed?
 	
