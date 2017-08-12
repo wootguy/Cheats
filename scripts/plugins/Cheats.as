@@ -241,6 +241,7 @@ class ConstantCheat
 	EHandle player;
 	int gravity;
 	bool noclip;
+	bool godmode;
 	
 	ConstantCheat() {}
 	
@@ -249,6 +250,7 @@ class ConstantCheat
 		this.player = player;
 		gravity = 100;
 		noclip = false;
+		godmode = false;
 	}
 	
 	bool isValid()
@@ -256,7 +258,7 @@ class ConstantCheat
 		if (player)
 		{
 			CBaseEntity@ ent = player;
-			return ent.IsAlive() and (gravity != 100 or noclip);
+			return ent.IsAlive() and (gravity != 100 or noclip or godmode);
 		}
 		return false;
 	}
@@ -582,18 +584,45 @@ int toggleNoclip(CBasePlayer@ target, array<string>@ args)
 int toggleGodmode(CBasePlayer@ target, array<string>@ args)
 {	
 	int toggleState = (args.length() > 0) ? atoi(args[0]) : TOGGLE_TOGGLE;
+	int ret;
 	if (target.pev.flags & FL_GODMODE != 0 and toggleState != TOGGLE_ON or toggleState == TOGGLE_OFF)
 	{
 		target.pev.flags &= ~FL_GODMODE;
+		target.pev.takedamage = DAMAGE_YES;
 		g_PlayerFuncs.PrintKeyBindingString(target, "God mode OFF");
-		return TOGGLE_OFF;
+		ret = TOGGLE_OFF;
 	}
 	else
 	{
 		target.pev.flags |= FL_GODMODE;
+		target.pev.takedamage = DAMAGE_NO;
 		g_PlayerFuncs.PrintKeyBindingString(target, "God mode ON");
-		return TOGGLE_ON;
+		ret = TOGGLE_ON;
 	}
+	
+	bool existingCheat = false;
+	for (uint i = 0; i < constant_cheats.length(); i++)
+	{
+		if (constant_cheats[i].isValid())
+		{
+			CBaseEntity@ ent = constant_cheats[i].player;
+			if (ent.entindex() == target.entindex())
+			{
+				constant_cheats[i].godmode = ret == TOGGLE_ON;
+				existingCheat = true;
+				break;
+			}
+		}
+	}
+	if (!existingCheat and ret == TOGGLE_ON)
+	{
+		EHandle h_plr = target;
+		ConstantCheat cheat(h_plr);
+		cheat.godmode = true;
+		constant_cheats.insertLast(cheat);
+	}
+	
+	return ret;
 }
 
 int toggleNotarget(CBasePlayer@ target, array<string>@ args)
@@ -887,6 +916,11 @@ void constantCheats()
 			CBaseEntity@ ent = constant_cheats[i].player;
 			if (constant_cheats[i].noclip)
 				ent.pev.movetype = MOVETYPE_NOCLIP;
+			if (constant_cheats[i].godmode)
+			{
+				ent.pev.flags |= FL_GODMODE;
+				ent.pev.takedamage = DAMAGE_NO;
+			}
 			if (constant_cheats[i].gravity != 100)
 			{
 				ent.pev.gravity = constant_cheats[i].gravity / 100.0f;
