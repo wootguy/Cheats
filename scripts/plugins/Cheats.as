@@ -196,10 +196,10 @@ array<string> giveAllList = {
 	"weapon_gauss",
 	"weapon_egon",
 	"weapon_hornetgun",
-	"weapon_handgrenade", "weapon_handgrenade",
-	"weapon_tripmine", "weapon_tripmine", "weapon_tripmine", "weapon_tripmine", "weapon_tripmine",
-	"weapon_satchel", "weapon_satchel", "weapon_satchel", "weapon_satchel", "weapon_satchel",
-	"weapon_snark", "weapon_snark", "weapon_snark",
+	"weapon_handgrenade",
+	"weapon_tripmine",
+	"weapon_satchel",
+	"weapon_snark",
 	"weapon_uziakimbo",
 	"weapon_medkit",
 	"weapon_pipewrench",
@@ -744,17 +744,24 @@ int useImpulse(CBasePlayer@ target, array<string>@ args)
 int giveItem(CBasePlayer@ target, array<string>@ args)
 {
 	bool validItem = false;
+	bool isAmmo = args[0].Find("ammo_") == 0;
 	if (args[0].Find("weapon_") == 0) validItem = true;
-	if (args[0].Find("ammo_") == 0) validItem = true;
+	if (isAmmo) validItem = true;
 	if (args[0].Find("item_") == 0) validItem = true;
 	
-	if (validItem)
+	if (validItem and @target.HasNamedPlayerItem(args[0]) == @null)
 	{
-		dictionary keys;
-		keys["origin"] = target.pev.origin.ToString();
-		CBaseEntity@ item = g_EntityFuncs.CreateEntity(args[0], keys, false);
-		item.pev.spawnflags |= SF_NORESPAWN;
-		g_EntityFuncs.DispatchSpawn(item.edict());
+		if (isAmmo) {
+			// for some reason GiveNamedItem gives the wrong ammo types
+			dictionary keys;
+			keys["origin"] = target.pev.origin.ToString();
+			CBaseEntity@ item = g_EntityFuncs.CreateEntity(args[0], keys, false);
+			item.pev.spawnflags |= SF_NORESPAWN;
+			g_EntityFuncs.DispatchSpawn(item.edict());
+			item.Touch(target);
+		} else {
+			target.GiveNamedItem(args[0], 0, 0);
+		}
 	}
 	return 0;
 }
