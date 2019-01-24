@@ -92,6 +92,7 @@ dictionary cheats = {
 	{'.notarget',   Cheat("notarget",    toggleNotarget, CHEAT_TOGGLE,   0, false, false)},
 	{'.cloak',   	Cheat("cloak",   	 toggleCloak, 	 CHEAT_TOGGLE,   0, false, false)},
 	{'.notouch',    Cheat("notouch",     toggleNotouch,  CHEAT_TOGGLE,   0, false, false)},
+	{'.rambo',      Cheat("rambo",       toggleRambo,  	 CHEAT_TOGGLE,   0, false, false)},
 	{'.cheats',     Cheat("cheats",      toggleCheats,   CHEAT_TOGGLE,   0, true,  false)},
 	{'.impulse',    Cheat("impulse %0",  useImpulse,     CHEAT_GIVE,     1, false, false)},
 	{'.give',  	    Cheat("%0",   	     giveItem,       CHEAT_GIVE, 	 1, false, false)},
@@ -99,6 +100,7 @@ dictionary cheats = {
 	{'.maxhealth',  Cheat("maxhealth",   setMaxHealth,   CHEAT_GIVE,     1, false, false)},
 	{'.maxarmor',   Cheat("maxarmor",    setMaxCharge,   CHEAT_GIVE,     1, false, false)},
 	{'.speed',   	Cheat("%0 speed",    setMaxSpeed,    CHEAT_GIVE,     1, false, false)},
+	{'.damage',   	Cheat("%0 damage",   setWepDamage,   CHEAT_GIVE,     1, false, false)},
 	{'.gravity',   	Cheat("%0% gravity", setGravity,     CHEAT_GIVE,     1, false, false)},
 	{'.giveall',    Cheat("everything",  giveAll,        CHEAT_GIVE, 	 0, false, false)},
 	{'.heal',       Cheat("healed",	     heal,     	     CHEAT_ACTION,   0, false, false)},
@@ -118,6 +120,7 @@ CClientCommand _god(        "god",        "Take no damage", @cheatCmd );
 CClientCommand _notarget(   "notarget",   "Monsters ignore you", @cheatCmd );
 CClientCommand _cloak(   	"cloak",      "Monsters ignore you and you're invisible", @cheatCmd );
 CClientCommand _notouch(    "notouch",    "Things pass through you, triggers ignore you", @cheatCmd );
+CClientCommand _rambo(      "rambo",      "Disables weapon cooldowns and reloads", @cheatCmd );
 CClientCommand _nonsolid(   "nonsolid",   "Things pass through you, triggers ignore you", @cheatCmd );
 CClientCommand _cheats(     "cheats",     "Allow cheats for players", @cheatCmd );
 CClientCommand _impulse(    "impulse",    "Half-Life impulse cheats", @cheatCmd );
@@ -135,6 +138,7 @@ CClientCommand _maxhealth(  "maxhealth",  "Adjust maximum health", @cheatCmd );
 CClientCommand _maxarmor(   "maxarmor",   "Adjust maximum armor", @cheatCmd );
 CClientCommand _maxcharge(  "maxcharge",  "Adjust maximum armor", @cheatCmd );
 CClientCommand _speed(   	"speed",  	  "Adjust maximum movement speed", @cheatCmd );
+CClientCommand _damage(   	"damage",  	  "Adjust damage for current weapon", @cheatCmd );
 CClientCommand _gravity(   	"gravity",    "Set gravity percentage", @cheatCmd );
 CClientCommand _grav(   	"grav",       "Set gravity percentage", @cheatCmd );
 
@@ -148,6 +152,16 @@ void initCheatAliases() {
 	cheats[".maxcharge"] = cheats[".maxarmor"];
 	cheats[".grav"] = cheats[".gravity"];
 }
+
+// weapons that use the engine time to calculate the next attack time
+dictionary rambo_special_delay_weapons = {
+	{'weapon_crowbar', true},
+	{'weapon_pipewrench', true},
+	{'weapon_medkit', true},
+	{'weapon_snark', true},
+	{'weapon_tripmine', true},
+	{'weapon_grapple', true}
+};
 
 array<string> impulse_101_weapons = {
 	"weapon_crowbar",
@@ -221,6 +235,7 @@ class ConstantCheat
 	int gravity;
 	bool noclip;
 	bool godmode;
+	bool rambo;
 	
 	ConstantCheat() {}
 	
@@ -230,6 +245,7 @@ class ConstantCheat
 		gravity = 100;
 		noclip = false;
 		godmode = false;
+		rambo = false;
 	}
 	
 	bool isValid()
@@ -237,7 +253,7 @@ class ConstantCheat
 		if (player)
 		{
 			CBaseEntity@ ent = player;
-			return ent.IsAlive() and (gravity != 100 or noclip or godmode);
+			return ent.IsAlive() and (gravity != 100 or noclip or godmode or rambo);
 		}
 		return false;
 	}
@@ -325,6 +341,7 @@ void removePeasentCheats(CBasePlayer@ plr)
 		toggleNotarget(plr, gargs);
 		toggleNotouch(plr, gargs);
 		toggleNoclip(plr, gargs);
+		toggleRambo(plr, gargs);
 	}
 }
 
@@ -660,6 +677,53 @@ int toggleNotouch(CBasePlayer@ target, array<string>@ args)
 	}
 }
 
+int toggleRambo(CBasePlayer@ target, array<string>@ args)
+{	
+	int toggleState = (args.length() > 0) ? atoi(args[0]) : TOGGLE_TOGGLE;
+	int ret = TOGGLE_OFF;
+	
+	bool existingCheat = false;
+	for (uint i = 0; i < constant_cheats.length(); i++)
+	{
+		if (constant_cheats[i].isValid())
+		{
+			CBaseEntity@ ent = constant_cheats[i].player;
+			if (ent.entindex() == target.entindex())
+			{
+				if (toggleState == TOGGLE_ON) {
+					constant_cheats[i].rambo = true;
+					ret = TOGGLE_ON;
+				}
+				if (toggleState == TOGGLE_OFF) {
+					constant_cheats[i].rambo = true;
+					ret = TOGGLE_OFF;
+				}
+				if (toggleState == TOGGLE_TOGGLE) {
+					constant_cheats[i].rambo = !constant_cheats[i].rambo;
+					ret = constant_cheats[i].rambo ? TOGGLE_ON : TOGGLE_OFF;
+				}
+				existingCheat = true;
+				break;
+			}
+		}
+	}
+	if (!existingCheat and toggleState != TOGGLE_OFF)
+	{
+		EHandle h_plr = target;
+		ConstantCheat cheat(h_plr);
+		cheat.rambo = true;
+		constant_cheats.insertLast(cheat);
+		ret = TOGGLE_ON;
+	}
+	
+	if (ret == TOGGLE_ON)
+		g_PlayerFuncs.PrintKeyBindingString(target, "Rambo ON");
+	if (ret == TOGGLE_OFF)
+		g_PlayerFuncs.PrintKeyBindingString(target, "Rambo OFF");
+	
+	return ret;
+}
+
 int toggleCheats(CBasePlayer@ target, array<string>@ args)
 {
 	int toggleState = (args.length() > 0) ? atoi(args[0]) : TOGGLE_TOGGLE;
@@ -801,6 +865,17 @@ int setMaxSpeed(CBasePlayer@ target, array<string>@ args)
 	return 0;
 }
 
+int setWepDamage(CBasePlayer@ target, array<string>@ args)
+{
+	CBasePlayerWeapon@ activeItem = cast<CBasePlayerWeapon@>(target.m_hActiveItem.GetEntity());
+	float damage = atof(args[0]);
+	if (activeItem !is null) {
+		activeItem.m_flCustomDmg = damage;
+	}
+	g_PlayerFuncs.PrintKeyBindingString(target, "Damage " + int(damage));
+	return 0;
+}
+
 int setGravity(CBasePlayer@ target, array<string>@ args)
 {
 	int arg = atoi(args[0]);
@@ -904,19 +979,47 @@ void constantCheats()
 	{
 		if (constant_cheats[i].isValid())
 		{
-			CBaseEntity@ ent = constant_cheats[i].player;
+			CBasePlayer@ plr = cast<CBasePlayer@>(constant_cheats[i].player.GetEntity());
+			if (plr is null)
+				continue;
 			if (constant_cheats[i].noclip)
-				ent.pev.movetype = MOVETYPE_NOCLIP;
+				plr.pev.movetype = MOVETYPE_NOCLIP;
 			if (constant_cheats[i].godmode)
 			{
-				ent.pev.flags |= FL_GODMODE;
-				ent.pev.takedamage = DAMAGE_NO;
+				plr.pev.flags |= FL_GODMODE;
+				plr.pev.takedamage = DAMAGE_NO;
 			}
 			if (constant_cheats[i].gravity != 100)
 			{
-				ent.pev.gravity = constant_cheats[i].gravity / 100.0f;
-				if (ent.pev.gravity == 0)
-					ent.pev.gravity = -0.00000000000000000000000000001;
+				plr.pev.gravity = constant_cheats[i].gravity / 100.0f;
+				if (plr.pev.gravity == 0)
+					plr.pev.gravity = -0.00000000000000000000000000001;
+			}
+			if (constant_cheats[i].rambo)
+			{
+				CBasePlayerWeapon@ activeItem = cast<CBasePlayerWeapon@>(plr.m_hActiveItem.GetEntity());
+				if (activeItem !is null) {
+					float ramboDelay = 0.05f;
+					if (rambo_special_delay_weapons.exists(activeItem.pev.classname)) {
+						ramboDelay += g_Engine.time;
+					}
+					if (activeItem.m_flNextPrimaryAttack > ramboDelay) {
+						activeItem.m_flNextPrimaryAttack = ramboDelay;
+					}
+					if (activeItem.m_flNextSecondaryAttack > ramboDelay) {
+						activeItem.m_flNextSecondaryAttack = ramboDelay;
+					}
+					if (activeItem.m_flNextTertiaryAttack > ramboDelay) {
+						activeItem.m_flNextTertiaryAttack = ramboDelay;
+					}
+					if (plr.m_flNextAttack > ramboDelay) {
+						plr.m_flNextAttack = ramboDelay;
+					}
+					
+					activeItem.m_iClip = 9999;
+					activeItem.m_iClip2 = 9999;
+					plr.pev.punchangle = Vector(0,0,0);
+				}
 			}
 			continue;
 		}
@@ -943,6 +1046,7 @@ bool doCheat(CBasePlayer@ plr, const CCommand@ args)
 		printlnPlr(plr, ".god - Become invincible"); 
 		printlnPlr(plr, ".notarget - Monsters ignore you"); 
 		printlnPlr(plr, ".notouch - Entities pass through you and map triggers ignore you"); 
+		printlnPlr(plr, ".rambo - Disables weapon cooldowns and reloading"); 
 		printlnPlr(plr, ".impulse 101 - Gives all weapons, some ammo, and a battery"); 
 		printlnPlr(plr, ".give - Gives a weapon, ammo, or item entity"); 
 		printlnPlr(plr, ".givepoints - Add points to score"); 
@@ -955,18 +1059,19 @@ bool doCheat(CBasePlayer@ plr, const CCommand@ args)
 		printlnPlr(plr, ".strip - Remove all weapons and ammo");
 		printlnPlr(plr, ".cloak - Same as notarget but also makes your player model invisible");
 		printlnPlr(plr, ".speed - Change movement speed (range is 0 to sv_maxspeed)");
+		printlnPlr(plr, ".damage - Adjust damage for current weapon (most weapons don't respond to this properly)");
 		printlnPlr(plr, ".gravity - Change gravity percentage (100 = 100%)");
 		printlnPlr(plr, "\n---------------------------- Command Syntax ---------------------"); 
 		printlnPlr(plr, "Format for cheats:"); 
 		
 		if (isAdmin(plr)) {
 			printlnPlr(plr, "\n.god [0,1] [player]\n");
-			printlnPlr(plr, "The 0/1 argument is optional, and only applies to some cheats (god, noclip, notarget, notouch)");
+			printlnPlr(plr, "The 0/1 argument is optional, and only applies to toggled cheats (god, noclip, notarget, notouch, rambo)");
 			printlnPlr(plr, "\nWhen specifying a player (optional), you can use part of their username, or their Steam ID.");
 			printlnPlr(plr, 'To apply a cheat to all players in a server, use \\all (ex: ".god 1 \\all")');
 		} else {
 			printlnPlr(plr, "\n.god [0,1]\n");
-			printlnPlr(plr, "The 0/1 argument is optional, and only applies to some cheats (god, noclip, notarget, notouch)");
+			printlnPlr(plr, "The 0/1 argument is optional, and only applies to toggled cheats (god, noclip, notarget, notouch)");
 			printlnPlr(plr, 'Example: to turn on godmode, type ".god 1"');
 		}
 		printlnPlr(plr, '\nAll commands can be used in chat as well as the console.');
