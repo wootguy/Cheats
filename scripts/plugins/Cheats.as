@@ -172,13 +172,6 @@ array<string> impulse_101_weapons = {
 	"weapon_displacer"
 };
 
-array<string> impulse_101_items = {
-	"weapon_handgrenade",
-	"weapon_tripmine",
-	"weapon_satchel",
-	"weapon_snark"
-};
-
 array<string> impulse_101_ammo = {
 	"ammo_sporeclip", "ammo_sporeclip", "ammo_sporeclip", "ammo_sporeclip", "ammo_sporeclip",
 	"ammo_357",
@@ -218,20 +211,6 @@ array<string> giveAllList = {
 	"weapon_eagle",
 	"weapon_displacer"
 };
-
-// ammo indexes (since I don't know the ammo item names to use with GetAmmoIndex())
-int AMMO_SHOTGUN = 1;
-int AMMO_MEDKIT = 2;
-int AMMO_556 = 3;
-int AMMO_762 = 4;
-int AMMO_ARGRENADES = 5;
-int AMMO_357 = 6;
-int AMMO_9MM = 7;
-int AMMO_SPORE = 9;
-int AMMO_GAUSS = 10;
-int AMMO_RPG = 11;
-int AMMO_CROSSBOW = 12;
-// Unused indexes(?): 0, 8
 
 bool cheats_for_all = false;
 
@@ -736,23 +715,22 @@ int useImpulse(CBasePlayer@ target, array<string>@ args)
 			}
 		}
 		
-		for (uint i = 0; i < impulse_101_items.length(); i++) {
-			array<string> gargs = {impulse_101_items[i]};
-			giveItem(target, gargs);
-		}
-		
 		// Replicate impulse 101 exactly (even though it's ineffecient)
-		giveAmmoCapped(target, AMMO_SHOTGUN, "ammo_buckshot", 1);
-		giveAmmoCapped(target, AMMO_556, "ammo_556", 1);
-		giveAmmoCapped(target, AMMO_762, "ammo_762", 1);
-		giveAmmoCapped(target, AMMO_ARGRENADES, "ammo_ARgrenades", 1);
-		giveAmmoCapped(target, AMMO_357, "ammo_357", 1);
-		giveAmmoCapped(target, AMMO_9MM, "ammo_9mmAR", 1);
-		giveAmmoCapped(target, AMMO_9MM, "ammo_9mmclip", 1);
-		giveAmmoCapped(target, AMMO_SPORE, "ammo_sporeclip", 5);
-		giveAmmoCapped(target, AMMO_GAUSS, "ammo_gaussclip", 1);
-		giveAmmoCapped(target, AMMO_RPG, "ammo_rpgclip", 1);
-		giveAmmoCapped(target, AMMO_CROSSBOW, "ammo_crossbow", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("buckshot"), "ammo_buckshot", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("556"), "ammo_556", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("m40a1"), "ammo_762", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("argrenades"), "ammo_ARgrenades", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("357"), "ammo_357", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("9mm"), "ammo_9mmAR", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("9mm"), "ammo_9mmclip", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("sporeclip"), "ammo_sporeclip", 5);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("uranium"), "ammo_gaussclip", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("rockets"), "ammo_rpgclip", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("bolts"), "ammo_crossbow", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("trip mine"), "weapon_tripmine", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("satchel charge"), "weapon_satchel", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("hand grenade"), "weapon_handgrenade", 1);
+		giveAmmoCapped(target, g_PlayerFuncs.GetAmmoIndex("snarks"), "weapon_snark", 1);
 		
 		// give battery if not fully charged
 		if (target.pev.armorvalue < target.pev.armortype) {
@@ -769,9 +747,15 @@ int giveItem(CBasePlayer@ target, array<string>@ args)
 	if (args[0].Find("weapon_") == 0) validItem = true;
 	if (args[0].Find("ammo_") == 0) validItem = true;
 	if (args[0].Find("item_") == 0) validItem = true;
-		
+	
 	if (validItem)
-		target.GiveNamedItem(args[0], 0, 0);
+	{
+		dictionary keys;
+		keys["origin"] = target.pev.origin.ToString();
+		CBaseEntity@ item = g_EntityFuncs.CreateEntity(args[0], keys, false);
+		item.pev.spawnflags |= SF_NORESPAWN;
+		g_EntityFuncs.DispatchSpawn(item.edict());
+	}
 	return 0;
 }
 
@@ -897,7 +881,7 @@ int giveAll(CBasePlayer@ target, array<string>@ args)
 	}
 	
 	// "infinite" ammo for all weapons
-	for (int i = 0; i < 13; i++)
+	for (int i = 0; i < 64; i++)
 		target.m_rgAmmo(i, 1000000);
 		
 	if (activeItem.Length() > 0)
