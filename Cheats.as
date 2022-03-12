@@ -64,7 +64,7 @@ class Cheat
 	int type;	 // cheat_type
 	int numArgs; // args required by the command
 	int lastState; // for toggled cheats
-	bool adminOnly; // if true, peasents can't use the cheat even when global cheats are enabled
+	bool adminOnly; // if true, peasants can't use the cheat even when global cheats are enabled
 	bool ownerOnly; // if true, nobody but the server owner can use the cheat
 	
 	Cheat(string name, CheatFunction@ cheatFunc, int type, int numArgs, bool adminOnly, bool ownerOnly)
@@ -278,9 +278,9 @@ bool canCheat(CBasePlayer@ plr, bool adminOnlyCommand, bool ownerOnlyCommand)
 		return !ownerOnlyCommand;
 		
 	string id = getPlayerUniqueId(plr);
-	bool peasentWithPrivledges = player_states.exists(id) and int(player_states[id]) != 0;
+	bool peasantWithPrivledges = player_states.exists(id) and int(player_states[id]) != 0;
 	
-	if (cheats_for_all or peasentWithPrivledges)
+	if (cheats_for_all or peasantWithPrivledges)
 		return !(adminOnlyCommand or ownerOnlyCommand);
 		
 	return false;
@@ -331,8 +331,8 @@ CBasePlayer@ getPlayer(CBasePlayer@ caller, string name)
 	return null;
 }
 
-// disabling cheats should also remove active ones from peasents (they can't turn them off themselves)
-void removePeasentCheats(CBasePlayer@ plr)
+// disabling cheats should also remove active ones from peasants (they can't turn them off themselves)
+void removepeasantCheats(CBasePlayer@ plr)
 {
 	if (!isAdmin(plr))
 	{
@@ -358,7 +358,7 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 	
 	// player is allowed to use this cheat?
 	if (!canCheat(cheater, cheat.adminOnly, cheat.ownerOnly)) {
-		g_PlayerFuncs.SayText(cheater, "You don't have access to that command, peasent.\n");
+		g_PlayerFuncs.SayText(cheater, "You don't have access to that command, peasant.\n");
 		return;
 	}
 	
@@ -437,7 +437,7 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 				cheat.cheatFunc(plr, cheatArgs);
 				
 				if (args[0] == ".cheats" and (toggleState == TOGGLE_OFF or cheats_for_all))
-					removePeasentCheats(plr);
+					removepeasantCheats(plr);
 			}
 		} while (ent !is null);
 		
@@ -503,7 +503,7 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 					g_PlayerFuncs.SayText(cheater, "Cheat failed. " + target.pev.netname + " is an admin.\n");
 				}
 				if (args[0] == ".cheats" and ret == TOGGLE_OFF)
-					removePeasentCheats(target);
+					removepeasantCheats(target);
 			}
 			else if (cheat.type == CHEAT_GIVE)
 			{
