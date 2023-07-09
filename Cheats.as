@@ -450,19 +450,23 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 			else
 				cheats_for_all = !cheats_for_all;
 			
+			string msg = "" + cheater.pev.netname + " disabled cheats for everyone\n";
 			if (cheats_for_all)
-				g_PlayerFuncs.SayTextAll(cheater, "" + cheater.pev.netname + " enabled cheats for everyone (type .cheatlist in console for help)\n");
-			else
-				g_PlayerFuncs.SayTextAll(cheater, "" + cheater.pev.netname + " disabled cheats for everyone\n");
+				msg = "" + cheater.pev.netname + " enabled cheats for everyone (type .cheatlist in console for help)\n";
+			
+			g_PlayerFuncs.SayTextAll(cheater, msg);
+			g_Log.PrintF("[Admin] " + msg);
 		}
 		else if (cheat.type == CHEAT_TOGGLE)
 		{
-			if (toggleState == TOGGLE_TOGGLE)
-				g_PlayerFuncs.SayTextAll(cheater, "" + cheater.pev.netname + " toggled " + cheat.name + " on everyone\n");
-			else if (toggleState == TOGGLE_ON)
-				g_PlayerFuncs.SayTextAll(cheater, "" + cheater.pev.netname + " gave everyone " + cheat.name + "\n");
+			string msg = "" + cheater.pev.netname + " toggled " + cheat.name + " on everyone\n";
+			if (toggleState == TOGGLE_ON)
+				msg = "" + cheater.pev.netname + " gave everyone " + cheat.name + "\n";
 			else if (toggleState == TOGGLE_OFF)
-				g_PlayerFuncs.SayTextAll(cheater, "" + cheater.pev.netname + " removed everyone's " + cheat.name + "\n");
+				msg = "" + cheater.pev.netname + " removed everyone's " + cheat.name + "\n";
+				
+			g_PlayerFuncs.SayTextAll(cheater, msg);
+			g_Log.PrintF("[Admin] " + msg);
 		}
 		else if (cheat.type == CHEAT_GIVE)
 		{
@@ -470,16 +474,24 @@ void applyCheat(Cheat@ cheat, CBasePlayer@ cheater, const CCommand@ args)
 			if (giveName.Find("%0") != uint(-1)) {
 				giveName = giveName.Replace("%0", cheatArgs[0]);
 			}
-			g_PlayerFuncs.SayTextAll(cheater, "" + cheater.pev.netname + " gave everyone " + giveName + "\n");
+			string msg = "" + cheater.pev.netname + " gave everyone " + giveName + "\n";
+			g_PlayerFuncs.SayTextAll(cheater, msg);
+			g_Log.PrintF("[Admin] " + msg);
 		}
 		else if (cheat.type == CHEAT_ACTION)
 		{
-			g_PlayerFuncs.SayTextAll(target, "" + cheater.pev.netname + " " + cheat.name + " everyone\n");
+			string msg = "" + cheater.pev.netname + " " + cheat.name + " everyone\n";
+			g_PlayerFuncs.SayTextAll(target, msg);
+			g_Log.PrintF("[Admin] " + msg);
 		}
 	}
 	else // apply to specific player or self
 	{
 		//println("Apply " + args[0] + " from " + cheater.pev.netname + " to " + target.pev.netname);
+		string msg = "[Admin] " + cheater.pev.netname + " used " + args[0] + " on " + target.pev.netname + "\n";
+		g_PlayerFuncs.ClientPrintAll(HUD_PRINTCONSOLE, msg);
+		g_Log.PrintF(msg);
+		
 		int ret = cheat.cheatFunc(target, cheatArgs);
 		
 		if (cheater != target) {
@@ -935,7 +947,7 @@ int revive(CBasePlayer@ target, array<string>@ args)
 		g_PlayerFuncs.PrintKeyBindingString(target, "Self revive N/A: Already alive");
 		return FAIL_TARGET_ALIVE;
 	} else {
-		target.EndRevive(0);
+		target.Revive();
 		return 0;
 	}
 }
